@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>随机名单抽取器</title>
+  <style>
+    /* 全屏背景与居中容器 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      width: 100%;
+      height: 100%;
+      /* 背景图片将在页面加载时由 JavaScript 动态设置 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      /* 半透明遮罩便于文字显示 */
+      background-color: rgba(0, 0, 0, 0.4);
+      background-blend-mode: darken;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    h1 {
+      color: #fff;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    textarea {
+      width: 300px;
+      height: 150px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      resize: none;
+      margin-bottom: 10px;
+      outline: none;
+    }
+    /* 每个获奖者的显示区域 */
+    .winner {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 10px;
+      width: 300px;
+      height: 80px;
+      line-height: 80px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      text-align: center;
+      color: #333;
+      /* 持续“弹跳”的动画效果 */
+      animation: pop 0.5s infinite;
+    }
+    #displayContainer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .controls {
+      margin-top: 10px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #startBtn {
+      background: #4CAF50;
+      color: #fff;
+    }
+    #stopBtn {
+      background: #f44336;
+      color: #fff;
+    }
+    label {
+      color: #fff;
+      font-size: 18px;
+      margin-right: 10px;
+    }
+    input[type="number"] {
+      font-size: 18px;
+      padding: 5px;
+      width: 60px;
+      border-radius: 5px;
+      border: none;
+      margin-right: 20px;
+    }
+    /* “弹跳”动画定义 */
+    @keyframes pop {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.1); opacity: 0.8; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    /* 底部版权信息样式 */
+    #footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+      padding: 5px 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>随机名单抽取器</h1>
+    <!-- 用户输入名单，每行一个名字 -->
+    <textarea id="nameList" placeholder="请输入名单，每行一个名字"></textarea>
+    <!-- 选择抽取人数 -->
+    <div class="controls">
+      <label for="winnerCount">抽取人数：</label>
+      <input type="number" id="winnerCount" min="1" value="1">
+    </div>
+    <!-- 显示获奖者的区域 -->
+    <div id="displayContainer"></div>
+    <div class="controls">
+      <button id="startBtn">开始抽取</button>
+      <button id="stopBtn" disabled>停止抽取</button>
+    </div>
+  </div>
+
+  <!-- 彩蛋图片，固定定位、尺寸较小 -->
+  <img id="easterEgg" src="easterEgg.png" alt="彩蛋" style="position: fixed; width: 25px; height: 25px; cursor: pointer; z-index: 9999;">
+
+  <!-- 底部版权信息 -->
+  <div id="footer">
+    补课部版权所有 &nbsp;&nbsp; copyright2025-2025<br>
+    作者:白洲梓同学
+  </div>
+
+  <script>
+    // 根据访问设备类型设置不同背景图
+    document.addEventListener("DOMContentLoaded", function() {
+      var container = document.querySelector('.container');
+      // 简单检测：如果 userAgent 中包含手机常见标识，则视为手机端
+      var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      // 手机端使用背景1，电脑端使用背景2（请确保文件名正确）
+      var backgroundUrl = isMobile ? "background1.jpg" : "background2.jpg";
+      container.style.background = "url('" + backgroundUrl + "') no-repeat center center";
+      container.style.backgroundSize = "cover";
+      // 初始化彩蛋位置
+      refreshEasterEgg();
+    });
+
+    let timer = null;
+    let displayElements = [];
+    let names = [];
+    const nameListTextarea = document.getElementById('nameList');
+    const displayContainer = document.getElementById('displayContainer');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const winnerCountInput = document.getElementById('winnerCount');
+
+    startBtn.addEventListener('click', function() {
+      // 读取并处理用户输入的名单（按换行拆分，并去除空行）
+      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
+      const winnerCount = parseInt(winnerCountInput.value) || 1;
+      if (names.length < winnerCount) {
+        alert("名单中的名字数量少于抽取人数，请增加名单数量！");
+        return;
+      }
+      // 清空之前的显示区域，并创建对应数量的获奖显示区域
+      displayContainer.innerHTML = '';
+      displayElements = [];
+      for (let i = 0; i < winnerCount; i++) {
+        const div = document.createElement('div');
+        div.className = 'winner';
+        div.textContent = '?';
+        displayContainer.appendChild(div);
+        displayElements.push(div);
+      }
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      // 动画阶段：每100毫秒随机刷新各显示区域（动画阶段不做加权处理）
+      timer = setInterval(() => {
+        displayElements.forEach(div => {
+          const randomIndex = Math.floor(Math.random() * names.length);
+          div.textContent = names[randomIndex];
+        });
+      }, 100);
+    });
+
+    // 加权随机选择函数：若名字为“白洲梓”，权重设为1.1，其它名字权重均为1
+    function weightedRandomChoice(arr) {
+      let weights = arr.map(name => name === "白洲梓" ? 1.0001 : 1);
+      let total = weights.reduce((acc, w) => acc + w, 0);
+      let r = Math.random() * total;
+      for (let i = 0; i < arr.length; i++) {
+        if (r < weights[i]) return i;
+        r -= weights[i];
+      }
+      return arr.length - 1;
+    }
+
+    stopBtn.addEventListener('click', function() {
+      clearInterval(timer);
+      timer = null;
+      const winnerCount = displayElements.length;
+      let availableNames = [...names];
+      let winners = [];
+      // 使用加权随机算法依次抽取获奖者，并确保结果唯一
+      for (let i = 0; i < winnerCount; i++) {
+         let index = weightedRandomChoice(availableNames);
+         winners.push(availableNames[index]);
+         availableNames.splice(index, 1);
+      }
+      // 更新显示区域为最终抽取结果
+      for (let i = 0; i < winners.length; i++) {
+        displayElements[i].textContent = winners[i];
+      }
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    });
+
+    // 彩蛋：随机在屏幕边缘显示（不在正中间），位置随机但保持一定边距
+    function refreshEasterEgg() {
+      var egg = document.getElementById('easterEgg');
+      var margin = 10; // 离屏幕边缘的最小距离
+      var eggSize = 50; // 图片宽高（像素），已调整为较小尺寸
+      
+      // 随机选取一个边缘：上、右、下、左
+      var edge = Math.floor(Math.random() * 4);
+      // 清除之前的定位样式
+      egg.style.top = "";
+      egg.style.bottom = "";
+      egg.style.left = "";
+      egg.style.right = "";
+      
+      if (edge === 0) { // 上边
+         egg.style.top = margin + "px";
+         var left = margin + Math.random() * (window.innerWidth - eggSize - 2 * margin);
+         egg.style.left = left + "px";
+      } else if (edge === 1) { // 右边
+         egg.style.right = margin + "px";
+         var top = margin + Math.random() * (window.innerHeight - eggSize - 2 * margin);
+         egg.style.top = top + "px";
+      } else if (edge === 2) { // 下边
+         egg.style.bottom = margin + "px";
+         var left = margin + Math.random() * (window.innerWidth - eggSize - 2 * margin);
+         egg.style.left = left + "px";
+      } else { // 左边
+         egg.style.left = margin + "px";
+         var top = margin + Math.random() * (window.innerHeight - eggSize - 2 * margin);
+         egg.style.top = top + "px";
+      }
+    }
+    
+    // 当用户点击彩蛋图片时，随机弹出三种提示语之一，然后刷新彩蛋位置
+    document.getElementById('easterEgg').addEventListener('click', function() {
+      var messages = ["你找到我了，嘻嘻\n(趁你不注意，一溜烟跑走了)", "静静大王，万岁!!!!!!", "诶，我躲的还不够隐蔽吗？"];
+      var index = Math.floor(Math.random() * messages.length);
+      alert(messages[index]);
+      refreshEasterEgg();
+    });
+  </script>
+</body>
+</html>
