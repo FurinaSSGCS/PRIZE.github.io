@@ -22,6 +22,7 @@
       object-fit: cover;
       z-index: -1;
       display: none; /* 默认隐藏 */
+      pointer-events: none; /* 禁止用户交互 */
     }
     .container {
       width: 100%;
@@ -126,8 +127,8 @@
   </style>
 </head>
 <body>
-  <!-- 电脑端视频背景 -->
-  <video id="videoBackground" autoplay loop muted playsinline>
+  <!-- 电脑端视频背景，添加 oncontextmenu 禁用右键 -->
+  <video id="videoBackground" autoplay loop muted playsinline oncontextmenu="return false;">
     <source src="background_video.mp4" type="video/mp4">
     您的浏览器不支持 HTML5 视频。
   </video>
@@ -164,15 +165,19 @@
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
-        // 手机端使用背景1
+        // 手机端使用背景图片
         container.style.background = "url('background1.jpg') no-repeat center center";
         container.style.backgroundSize = "cover";
       } else {
-        // 电脑端使用视频背景，如果浏览器不支持 video 播放，则使用背景图片
+        // 电脑端使用视频背景，如果浏览器支持则显示视频
         var video = document.getElementById("videoBackground");
         if (video && video.canPlayType && video.canPlayType("video/mp4").replace(/no/, "")) {
           video.style.display = "block";
           container.style.background = "none"; // 移除容器的静态背景
+          // 防止视频暂停，监听 pause 事件并重新播放
+          video.addEventListener("pause", function() {
+            video.play();
+          });
         } else {
           container.style.background = "url('background1.jpg') no-repeat center center";
           container.style.backgroundSize = "cover";
