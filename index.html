@@ -168,10 +168,15 @@
         container.style.background = "url('background1.jpg') no-repeat center center";
         container.style.backgroundSize = "cover";
       } else {
-        // 电脑端使用视频背景
+        // 电脑端使用视频背景，如果浏览器不支持 video 播放，则使用背景图片
         var video = document.getElementById("videoBackground");
-        video.style.display = "block";
-        container.style.background = "none"; // 移除容器的静态背景
+        if (video && video.canPlayType && video.canPlayType("video/mp4").replace(/no/, "")) {
+          video.style.display = "block";
+          container.style.background = "none"; // 移除容器的静态背景
+        } else {
+          container.style.background = "url('background1.jpg') no-repeat center center";
+          container.style.backgroundSize = "cover";
+        }
       }
       // 初始化彩蛋位置
       refreshEasterEgg();
