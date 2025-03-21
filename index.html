@@ -75,18 +75,24 @@
     /* 单个中奖者块，采用 flex 居中显示 */
     .winner {
       position: relative;
-      width: 100px;  /* 调整为较窄 */
+      width: 100px;  /* 可根据需要调整宽度 */
       height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 16px;
       font-weight: bold;
       color: #333;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
+    }
+    /* 每个字符的span样式 */
+    .char-span {
+      display: inline-block;
+      width: 1ch;
+      text-align: center;
     }
     .controls {
       margin-top: 10px;
@@ -223,69 +229,64 @@
       return result;
     }
 
-    /*
-      修改后的动画逻辑：
-      - 固定显示区总字符数 blockLength（例如20个字符），将中奖姓名居中；
-      - 对于每个字母，花1秒钟揭示（期间每25ms刷新一次当前字母位置的随机字符）；
-      - 揭示完成后直接进入下一个字母，无需额外等待；
-      - 最终结果采用 flex 居中显示图片和姓名。
+    /*  
+       改进动画逻辑：
+       - 固定显示区字符数 blockLength（例如20个字符），其中左右填充部分一次生成；
+       - 中间为每个字母单独创建 span；
+       - 对于每个字母 span，花1秒（40次，每25ms更新一次）只更新这一位置的内容；
+       - 更新完成后直接固定为正确字符；
+       - 最终整个单元格采用 flex 居中显示图片和姓名。
     */
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
-        const blockLength = 20; // 固定显示字符总数
+        const blockLength = 20;
         const leftPad = Math.floor((blockLength - winnerName.length) / 2);
         const rightPad = blockLength - winnerName.length - leftPad;
-        let currentIndex = 0; // 当前已揭示的字母数
-
-        function revealLetter(index) {
-          if (cancelAnimation) {
-            element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;"><img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">${winnerName}</div>`;
+        // 生成固定的左右随机字符（一次生成即可）
+        const leftFixed = generateRandomChars(leftPad);
+        const rightFixed = generateRandomChars(rightPad);
+        // 创建容器内各个 span：左填充、每个字母的 span、右填充
+        let containerHTML = `<span class="left-pad">${leftFixed}</span>`;
+        let letterSpans = [];
+        for (let i = 0; i < winnerName.length; i++) {
+          containerHTML += `<span class="char-span" id="char-${i}">${generateRandomChars(1)}</span>`;
+        }
+        containerHTML += `<span class="right-pad">${rightFixed}</span>`;
+        element.innerHTML = containerHTML;
+        // 对每个字母进行动画更新
+        async function revealLetter(index) {
+          if (cancelAnimation) return;
+          if (index >= winnerName.length) {
+            // 所有字母揭示完毕后，将整个内容替换为居中显示的最终结果
+            element.style.transition = 'all 0.5s ease-out';
+            element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
+              <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
+              ${winnerName}
+            </div>`;
+            await new Promise(r => {
+              let t = setTimeout(r, 500);
+              activeTimers.push(t);
+            });
             return resolve();
           }
-          if (index >= winnerName.length) {
-            // 所有字母揭示完毕后，最终调整居中显示
-            element.style.transition = 'all 0.5s ease-out';
-            element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;"><img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">${winnerName}</div>`;
-            let t = setTimeout(() => { resolve(); }, 500);
-            activeTimers.push(t);
-            return;
-          }
+          // 对当前 letter span 更新 40 次，每次间隔25ms，总1秒
           let iterations = 0;
-          function updateCurrentLetter() {
-            if (cancelAnimation) {
-              element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;"><img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">${winnerName}</div>`;
-              return resolve();
-            }
+          let charSpan = document.getElementById(`char-${index}`);
+          function updateChar() {
+            if (cancelAnimation) return resolve();
             iterations++;
-            // 构建当前显示字符串：前面的字母已固定
-            let fixedPart = winnerName.substring(0, index);
-            // 当前字母位置，随机显示一个字符
-            let currentChar = generateRandomChars(1);
-            // 未揭示部分：随机显示
-            let remainingRandom = "";
-            for (let j = index + 1; j < winnerName.length; j++) {
-              remainingRandom += generateRandomChars(1);
-            }
-            // 左右填充随机字符
-            let leftRandom = generateRandomChars(leftPad);
-            let rightRandom = generateRandomChars(rightPad);
-            element.textContent = leftRandom + fixedPart + currentChar + remainingRandom + rightRandom;
-            if (iterations < 40) {  // 1000ms / 25ms = 40次更新
-              let t = setTimeout(updateCurrentLetter, 25);
+            charSpan.textContent = generateRandomChars(1);
+            if (iterations < 40) {
+              let t = setTimeout(updateChar, 25);
               activeTimers.push(t);
             } else {
-              // 固定当前字母为正确字符
-              let newFixed = winnerName.substring(0, index + 1);
-              let leftRandomFinal = generateRandomChars(leftPad);
-              let rightRandomFinal = generateRandomChars(rightPad);
-              element.textContent = leftRandomFinal + newFixed + generateRandomChars(winnerName.length - index - 1) + rightRandomFinal;
-              let t = setTimeout(() => {
-                revealLetter(index + 1);
-              }, 25);
-              activeTimers.push(t);
+              // 固定为正确字符
+              charSpan.textContent = winnerName[index];
+              // 开始下一个字母动画
+              revealLetter(index + 1);
             }
           }
-          updateCurrentLetter();
+          updateChar();
         }
         revealLetter(0);
       });
@@ -319,7 +320,7 @@
       skipBtn.disabled = true;
     }
 
-    // 直接排列显示中奖者（跳过动画时）
+    // 直接排列显示中奖者（跳过动画时调用）
     function displayWinnersDirectly(winners) {
       displayContainer.innerHTML = '';
       displayContainer.style.position = 'relative';
@@ -332,7 +333,10 @@
           if (index >= winners.length) break;
           let winnerDiv = document.createElement('div');
           winnerDiv.className = 'winner';
-          winnerDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;"><img src="${getImage(winners[index])}" style="width:15px;height:20px;margin-right:5px;">${winners[index]}</div>`;
+          winnerDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
+            <img src="${getImage(winners[index])}" style="width:15px;height:20px;margin-right:5px;">
+            ${winners[index]}
+          </div>`;
           row.appendChild(winnerDiv);
         }
         displayContainer.appendChild(row);
@@ -348,7 +352,7 @@
       return row;
     }
 
-    // 开始抽取：验证名单、随机抽取中奖者、启动动画
+    // 开始抽取
     startBtn.addEventListener('click', async function() {
       names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
@@ -371,7 +375,7 @@
       await animateWinnersSequentially(winners);
     });
 
-    // 跳过动画：取消所有定时器，直接显示最终结果
+    // 跳过动画
     skipBtn.addEventListener('click', function() {
       cancelAnimation = true;
       activeTimers.forEach(t => clearTimeout(t));
