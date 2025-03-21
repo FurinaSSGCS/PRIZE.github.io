@@ -65,7 +65,7 @@
       background: rgba(255,255,255,0.8);
       border-radius: 10px;
     }
-    /* 每行容器，间距缩小 */
+    /* 每行容器，行距较小 */
     .winner-row {
       display: flex;
       justify-content: space-around;
@@ -73,7 +73,7 @@
       height: 80px;
       margin-bottom: 5px;
     }
-    /* 中奖者单元格：宽度更宽，高度更短 */
+    /* 中奖者单元格：更宽更扁 */
     .winner {
       position: relative;
       width: 180px;
@@ -89,12 +89,12 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字母的 span，增加右边距避免重叠 */
+    /* 每个字母的 span，间距加大 */
     .char-span {
       display: inline-block;
       width: 1ch;
       text-align: center;
-      margin-right: 2px;
+      margin-right: 4px; /* 原先是2px，可根据需要再调大些 */
     }
     .controls {
       margin-top: 10px;
@@ -143,7 +143,7 @@
 <body>
   <!-- 电脑端视频背景 -->
   <video id="videoBackground" autoplay loop muted playsinline oncontextmenu="return false;">
-    <source src="https://video3-cdn-hippo-prod-transcoding.hippovideo.io/transcoding/1820551/1727002/43459943/43459943_playlist_540_360.m3u8?m3u8_sign=3245c49100c693f792b17db8ea4fc7cfdfc489219d2c814be4ca2780941cff22" type="video/mp4">
+    <source src="https://video3-cdn-hippo-prod-transcoding.hippovideo.io/transcoding/1820551/1727002/43459943/43459943_playlist_540_360.m3u8" type="video/mp4">
     您的浏览器不支持 HTML5 视频。
   </video>
 
@@ -163,7 +163,8 @@
   </div>
 
   <!-- 彩蛋图片 -->
-  <img id="easterEgg" src="easterEgg.png" alt="彩蛋" style="position: fixed; width: 25px; height: 25px; cursor: pointer; z-index: 9999;">
+  <img id="easterEgg" src="easterEgg.png" alt="彩蛋" 
+       style="position: fixed; width: 25px; height: 25px; cursor: pointer; z-index: 9999;">
   <div id="footer">
     版本信息:Version Alpha_Test 1.0<br>
     补课部©版权所有 &nbsp;&nbsp; ®CopyRight2025-2025<br>
@@ -171,7 +172,6 @@
   </div>
 
   <script>
-    // 根据设备设置背景
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -193,15 +193,14 @@
     });
 
     let names = [];
-    let cancelAnimation = false;  // 控制是否取消动画
-    let activeTimers = [];        // 存储所有定时器ID
+    let cancelAnimation = false;  
+    let activeTimers = [];        
     const nameListTextarea = document.getElementById('nameList');
     const displayContainer = document.getElementById('displayContainer');
     const startBtn = document.getElementById('startBtn');
     const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
 
-    // 根据名字返回对应图片（映射可扩展）
     function getImage(name) {
       const imageMap = {
         "白洲梓": "001.jpg"
@@ -209,7 +208,6 @@
       return imageMap[name] || "ipt.jpg";
     }
 
-    // 随机权重选择函数
     function weightedRandomChoice(arr) {
       let weights = arr.map(name => name === "白洲梓" ? 1.0001 : 1);
       let total = weights.reduce((acc, w) => acc + w, 0);
@@ -221,44 +219,41 @@
       return arr.length - 1;
     }
 
-    // 生成一个随机字符
     function generateRandomChar() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    /*
-      修改后的 animateWinner：
-      - 按顺序逐个创建并显示每个字母的 span，前一个字母完全固定后才创建下一个；
-      - 每个字母更新 40 次（1秒，每25ms 一次），期间只更新当前 span；
-      - 每个 span 之间有一定的右边距，防止字符重叠；
-      - 完成所有字母更新后，将单元格转换为居中显示图片和姓名。
-    */
+    // 按顺序逐字显示：每个字母在前一个固定后才出现
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
         async function revealLetter(index) {
           if (cancelAnimation) {
             element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                    <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
-                                    ${winnerName}
-                                  </div>`;
+                                   <img src="${getImage(winnerName)}" 
+                                        style="width:24px;height:24px;margin-right:5px;">
+                                   ${winnerName}
+                                 </div>`;
             return resolve();
           }
           if (index >= winnerName.length) {
             element.style.transition = 'all 0.5s ease-out';
             element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                    <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
-                                    ${winnerName}
-                                  </div>`;
+                                   <img src="${getImage(winnerName)}" 
+                                        style="width:24px;height:24px;margin-right:5px;">
+                                   ${winnerName}
+                                 </div>`;
             let t = setTimeout(() => { resolve(); }, 500);
             activeTimers.push(t);
             return;
           }
           let span = document.createElement('span');
           span.className = 'char-span';
-          span.style.marginRight = '2px';
+          span.style.marginRight = '4px';
           element.appendChild(span);
+
+          // 每个字母更新 40 次(1秒)，每次间隔25ms
           let iterations = 0;
           while (iterations < 40 && !cancelAnimation) {
             span.textContent = generateRandomChar();
@@ -268,14 +263,15 @@
               activeTimers.push(t);
             });
           }
+          // 固定为正确字符
           span.textContent = winnerName[index];
+          // 下一个字母
           await revealLetter(index + 1);
         }
         revealLetter(0);
       });
     }
 
-    // 顺序动画显示中奖者（每行最多 3 个）
     async function animateWinnersSequentially(winners) {
       displayContainer.innerHTML = '';
       displayContainer.style.position = 'relative';
@@ -303,23 +299,22 @@
       skipBtn.disabled = true;
     }
 
-    // 直接排列显示中奖者（跳过动画时调用）
     function displayWinnersDirectly(winners) {
       displayContainer.innerHTML = '';
       displayContainer.style.position = 'relative';
       const rowCount = Math.ceil(winners.length / 3);
       for (let i = 0; i < rowCount; i++) {
-        let row = document.createElement('div');
-        row.className = 'winner-row';
+        let row = createNewRow();
         for (let j = 0; j < 3; j++) {
           let index = i * 3 + j;
           if (index >= winners.length) break;
           let winnerDiv = document.createElement('div');
           winnerDiv.className = 'winner';
           winnerDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                    <img src="${getImage(winners[index])}" style="width:15px;height:20px;margin-right:5px;">
-                                    ${winners[index]}
-                                  </div>`;
+                                   <img src="${getImage(winners[index])}" 
+                                        style="width:24px;height:24px;margin-right:5px;">
+                                   ${winners[index]}
+                                 </div>`;
           row.appendChild(winnerDiv);
         }
         displayContainer.appendChild(row);
@@ -328,16 +323,16 @@
       skipBtn.disabled = true;
     }
 
-    // 创建新行容器
     function createNewRow() {
       const row = document.createElement('div');
       row.className = 'winner-row';
       return row;
     }
 
-    // 开始抽取
     startBtn.addEventListener('click', async function() {
-      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
+      names = nameListTextarea.value.split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
       if (names.length < winnerCount) {
         alert("名单中的名字数量少于抽取人数，请增加名单数量！");
@@ -348,6 +343,7 @@
       activeTimers = [];
       startBtn.disabled = true;
       skipBtn.disabled = false;
+
       let availableNames = [...names];
       let winners = [];
       for (let i = 0; i < winnerCount; i++) {
@@ -358,7 +354,6 @@
       await animateWinnersSequentially(winners);
     });
 
-    // 跳过动画
     skipBtn.addEventListener('click', function() {
       cancelAnimation = true;
       activeTimers.forEach(t => clearTimeout(t));
@@ -380,7 +375,6 @@
       displayWinnersDirectly(winners);
     });
 
-    // 彩蛋功能
     function refreshEasterEgg() {
       var egg = document.getElementById('easterEgg');
       var margin = 10;
@@ -410,7 +404,11 @@
     }
     
     document.getElementById('easterEgg').addEventListener('click', function() {
-      var messages = ["你找到我了，嘻嘻\n(趁你不注意，一溜烟跑走了)", "静静大王，万岁!!!!!!", "诶，我躲的还不够隐蔽吗？"];
+      var messages = [
+        "你找到我了，嘻嘻\n(趁你不注意，一溜烟跑走了)",
+        "静静大王，万岁!!!!!!",
+        "诶，我躲的还不够隐蔽吗？"
+      ];
       var index = Math.floor(Math.random() * messages.length);
       alert(messages[index]);
       refreshEasterEgg();
