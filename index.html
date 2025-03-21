@@ -72,11 +72,11 @@
       align-items: center;
       height: 100px;
     }
-    /* 单个中奖者块，宽度调窄，高度稍微加长 */
+    /* 修改后的中奖者单元格：宽度更窄，高度更长 */
     .winner {
       position: relative;
-      width: 80px;
-      height: 100px;
+      width: 60px;     /* 窄一些 */
+      height: 120px;   /* 长一些 */
       font-size: 16px;
       font-weight: bold;
       color: #333;
@@ -88,7 +88,7 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字符的 span */
+    /* 每个字母的 span */
     .char-span {
       display: inline-block;
       width: 1ch;
@@ -219,61 +219,53 @@
       return arr.length - 1;
     }
 
-    // 生成指定长度的随机字符
-    function generateRandomChars(length) {
+    // 生成一个随机字符
+    function generateRandomChar() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
+      return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
     /* 
-       动画逻辑说明：
-       - 根据中奖姓名长度生成对应数量的 <span class="char-span">（初始内容为随机字符）；
-       - 对每个 span（对应一个字母），在1秒内（40次，每25ms一次）更新该 span 的内容，显示随机字符；
-       - 更新结束后将该 span 固定为正确字符；
-       - 所有字符更新完毕后，将整个单元格转换为居中显示图片和正确姓名。
+       动画逻辑：
+       - 为中奖姓名中的每个字创建一个 <span class="char-span">；
+       - 依次对每个 span 进行动画：在1秒内（40次更新，每25ms一次）只更新该 span 的内容；
+       - 更新完后固定该 span 为正确字符；
+       - 所有字母揭示完毕后，转换为居中显示图片和姓名。
     */
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
-        // 生成与姓名长度相同的 span，初始显示随机字符
-        let containerHTML = "";
+        // 清空元素，创建与姓名长度相同的 span
+        element.innerHTML = '';
+        let spans = [];
         for (let i = 0; i < winnerName.length; i++) {
-          containerHTML += `<span class="char-span" id="char-${i}">${generateRandomChars(1)}</span>`;
+          let span = document.createElement('span');
+          span.className = 'char-span';
+          span.textContent = generateRandomChar();
+          element.appendChild(span);
+          spans.push(span);
         }
-        element.innerHTML = containerHTML;
-        
-        // 对每个字母 span启动独立的更新
-        let promises = [];
-        for (let i = 0; i < winnerName.length; i++) {
-          promises.push(new Promise(res => {
+        // 顺序揭示每个字母
+        async function revealLetters() {
+          for (let i = 0; i < winnerName.length; i++) {
             let iterations = 0;
-            let span = document.getElementById(`char-${i}`);
-            function updateSpan() {
-              if (cancelAnimation) return res();
+            while (iterations < 40 && !cancelAnimation) {
+              spans[i].textContent = generateRandomChar();
               iterations++;
-              span.textContent = generateRandomChars(1);
-              if (iterations < 40) { // 1秒内，每25ms更新一次
-                let t = setTimeout(updateSpan, 25);
+              await new Promise(r => {
+                let t = setTimeout(r, 25);
                 activeTimers.push(t);
-              } else {
-                span.textContent = winnerName[i]; // 固定为正确字符
-                res();
-              }
+              });
             }
-            updateSpan();
-          }));
+            spans[i].textContent = winnerName[i];
+          }
         }
-        // 等待所有字母更新完毕
-        Promise.all(promises).then(() => {
-          // 最终转换为居中显示图片和姓名
+        revealLetters().then(() => {
+          // 所有字母揭示完毕后，将单元格内容转换为居中显示图片和姓名
           element.style.transition = 'all 0.5s ease-out';
-          element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-            <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
-            ${winnerName}
-          </div>`;
+          element.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;">
+                                  <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
+                                  ${winnerName}
+                               </div>`;
           let t = setTimeout(() => { resolve(); }, 500);
           activeTimers.push(t);
         });
@@ -321,10 +313,10 @@
           if (index >= winners.length) break;
           let winnerDiv = document.createElement('div');
           winnerDiv.className = 'winner';
-          winnerDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-            <img src="${getImage(winners[index])}" style="width:15px;height:20px;margin-right:5px;">
-            ${winners[index]}
-          </div>`;
+          winnerDiv.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;">
+                                    <img src="${getImage(winners[index])}" style="width:15px;height:20px;margin-right:5px;">
+                                    ${winners[index]}
+                                  </div>`;
           row.appendChild(winnerDiv);
         }
         displayContainer.appendChild(row);
