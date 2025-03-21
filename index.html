@@ -182,6 +182,16 @@
     WEB作者:白洲梓(Azusa)同学
   </div>
   <script>
+    // 重置函数，清空所有状态
+    function resetExtraction() {
+      cancelAnimation = false;
+      activeTimers.forEach(t => clearTimeout(t));
+      activeTimers = [];
+      pages = [];
+      paginationControls.innerHTML = '';
+      displayContainer.innerHTML = '';
+    }
+    
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -211,8 +221,8 @@
     const startBtn = document.getElementById('startBtn');
     const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
-    let pages = [];       
-    let currentPage = 0;  
+    let pages = [];
+    let currentPage = 0;
 
     function getImage(name) {
       const imageMap = {
@@ -237,7 +247,7 @@
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // 动画：顺序逐字显示，每个字母在前一个固定后创建显示
+    // 动画：逐字揭示，每个字母在前一个完全固定后创建并显示
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
@@ -279,7 +289,7 @@
       });
     }
 
-    // 分页动画：每页最多6个中奖者（2行各3个）
+    // 每页动画播放，每页最多6个中奖者（2行×3个）
     async function animatePage(pageIndex) {
       displayContainer.innerHTML = '';
       let currentRow = createNewRow();
@@ -305,7 +315,7 @@
       }
     }
 
-    // 自动播放所有页的动画
+    // 自动播放所有页动画
     async function animateAllPages() {
       for (let i = 0; i < pages.length; i++) {
         currentPage = i;
@@ -373,7 +383,7 @@
       return row;
     }
 
-    // 将中奖者数组分页，每页最多6个
+    // 分页：每页最多6个中奖者
     function paginateWinners(winners) {
       let paged = [];
       for (let i = 0; i < winners.length; i += 6) {
@@ -383,21 +393,16 @@
     }
 
     startBtn.addEventListener('click', async function() {
+      // 重置所有全局状态
+      resetExtraction();
       names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
       if (names.length < winnerCount) {
         alert("名单中的名字数量少于抽取人数，请增加名单数量！");
         return;
       }
-      // 重置全局变量，确保每轮开始时干净
-      cancelAnimation = false;
-      activeTimers.forEach(t => clearTimeout(t));
-      activeTimers = [];
-      pages = [];
-      paginationControls.innerHTML = '';
       startBtn.disabled = true;
       skipBtn.disabled = false;
-
       let availableNames = [...names];
       let winners = [];
       for (let i = 0; i < winnerCount; i++) {
@@ -408,7 +413,6 @@
       pages = paginateWinners(winners);
       currentPage = 0;
       updatePaginationControls();
-      // 自动播放所有页动画
       await animateAllPages();
     });
 
