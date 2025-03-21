@@ -58,7 +58,7 @@
     #displayContainer {
       position: relative;
       width: 100%;
-      max-width: 400px;
+      max-width: 500px;
       height: 150px;
       overflow: hidden;
       margin-bottom: 20px;
@@ -75,7 +75,7 @@
     /* 单个中奖者块 */
     .winner {
       position: relative;
-      width: 75px;
+      width: 120px;
       height: 80px;
       line-height: 80px;
       font-size: 16px;
@@ -231,7 +231,7 @@
         
         function revealNext() {
           if (cancelAnimation) {
-            element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+            element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:20px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
             return resolve();
           }
           currentIndex++;
@@ -239,7 +239,7 @@
           let remainder = generateGarbledString(nameLength - currentIndex);
           element.textContent = winnerName.substring(0, currentIndex) + remainder;
           if (currentIndex < nameLength) {
-            let t = setTimeout(revealNext, 100);
+            let t = setTimeout(revealNext, 200);
             activeTimers.push(t);
           } else {
             // 揭示完成后延时启动右移及图片插入动画
