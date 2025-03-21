@@ -54,7 +54,7 @@
       backdrop-filter: blur(5px);
       margin-bottom: 10px;
     }
-    /* 显示中奖者区域（固定高度，超出时滚动） */
+    /* 显示中奖者区域 */
     #displayContainer {
       position: relative;
       width: 100%;
@@ -101,7 +101,7 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字母的 span，增加右边距防重叠 */
+    /* 每个字母的 span，间距加大 */
     .char-span {
       display: inline-block;
       width: 1ch;
@@ -163,7 +163,7 @@
     <textarea id="nameList" placeholder="请输入名单，每行一个名字"></textarea>
     <!-- 显示中奖者区域 -->
     <div id="displayContainer"></div>
-    <!-- 分页控制 -->
+    <!-- 分页控件 -->
     <div id="paginationControls"></div>
     <div class="controls">
       <label for="winnerCount">抽取人数：</label>
@@ -182,7 +182,6 @@
     WEB作者:白洲梓(Azusa)同学
   </div>
   <script>
-    // 设置背景
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -212,8 +211,8 @@
     const startBtn = document.getElementById('startBtn');
     const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
-    let pages = [];      // 存放分好页的中奖者数组
-    let currentPage = 0; // 当前页索引
+    let pages = [];       
+    let currentPage = 0;  
 
     function getImage(name) {
       const imageMap = {
@@ -238,24 +237,24 @@
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // 顺序动画显示：每个字母一个一个显示，前一个完成后再显示下一个
+    // 动画：顺序逐字显示，每个字母在前一个固定后创建显示
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
         async function revealLetter(index) {
           if (cancelAnimation) {
             element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                  <img src="${getImage(winnerName)}" style="width:24px;height:24px;margin-right:5px;">
-                                  ${winnerName}
-                                  </div>`;
+                                   <img src="${getImage(winnerName)}" style="width:24px;height:24px;margin-right:5px;">
+                                   ${winnerName}
+                                 </div>`;
             return resolve();
           }
           if (index >= winnerName.length) {
             element.style.transition = 'all 0.5s ease-out';
             element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                  <img src="${getImage(winnerName)}" style="width:24px;height:24px;margin-right:5px;">
-                                  ${winnerName}
-                                  </div>`;
+                                   <img src="${getImage(winnerName)}" style="width:24px;height:24px;margin-right:5px;">
+                                   ${winnerName}
+                                 </div>`;
             let t = setTimeout(() => { resolve(); }, 500);
             activeTimers.push(t);
             return;
@@ -280,7 +279,7 @@
       });
     }
 
-    // 按页播放动画，每页最多6个中奖者
+    // 分页动画：每页最多6个中奖者（2行各3个）
     async function animatePage(pageIndex) {
       displayContainer.innerHTML = '';
       let currentRow = createNewRow();
@@ -306,7 +305,7 @@
       }
     }
 
-    // 动画播放所有页：自动从第一页播放，播放完自动切换到下一页（若有）
+    // 自动播放所有页的动画
     async function animateAllPages() {
       for (let i = 0; i < pages.length; i++) {
         currentPage = i;
@@ -315,7 +314,7 @@
       }
     }
 
-    // 直接显示某一页的中奖结果（不播放动画）
+    // 直接显示某一页（静态结果）
     function displayPage(pageIndex) {
       displayContainer.innerHTML = '';
       let pageWinners = pages[pageIndex];
@@ -390,12 +389,15 @@
         alert("名单中的名字数量少于抽取人数，请增加名单数量！");
         return;
       }
+      // 重置全局变量，确保每轮开始时干净
       cancelAnimation = false;
       activeTimers.forEach(t => clearTimeout(t));
       activeTimers = [];
+      pages = [];
+      paginationControls.innerHTML = '';
       startBtn.disabled = true;
       skipBtn.disabled = false;
-      // 抽取中奖者（不重复）
+
       let availableNames = [...names];
       let winners = [];
       for (let i = 0; i < winnerCount; i++) {
@@ -403,11 +405,10 @@
         winners.push(availableNames[idx]);
         availableNames.splice(idx, 1);
       }
-      // 分页：每页最多6个中奖者
       pages = paginateWinners(winners);
       currentPage = 0;
       updatePaginationControls();
-      // 如果用户没有跳过动画，自动依次播放各页动画
+      // 自动播放所有页动画
       await animateAllPages();
     });
 
