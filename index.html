@@ -75,7 +75,8 @@
     /* 单个中奖者块 */
     .winner {
       position: relative;
-      width: 120px;
+      /* 调整宽度为较窄值，可根据需要修改 */
+      width: 100px;
       height: 80px;
       line-height: 80px;
       font-size: 16px;
@@ -212,8 +213,8 @@
       return arr.length - 1;
     }
 
-    // 生成指定长度的随机乱码字符串（从字母和数字中抽取）
-    function generateGarbledString(length) {
+    // 生成指定长度的随机字符
+    function generateRandomChars(length) {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       let result = '';
       for (let i = 0; i < length; i++) {
@@ -222,35 +223,50 @@
       return result;
     }
 
-    // 动画单个中奖者：依次揭示正确字符，再启动右移添加图片
+    /* 
+      修改动画逻辑：
+      我们设置一个固定显示区宽度，比如 blockLength（例如20字符）。
+      将中奖者姓名居中显示在该区内，动画时逐步揭示其对应部分，
+      而其余位置持续显示随机字符，形成一个“大表”不断变化的效果。
+    */
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
-        const nameLength = winnerName.length;
-        element.textContent = generateGarbledString(nameLength);
-        let currentIndex = 0;
-        
-        function revealNext() {
+        const blockLength = 20; // 固定显示字符总数，可调整
+        // 计算将中奖姓名居中所需的左右空白长度
+        const leftPad = Math.floor((blockLength - winnerName.length) / 2);
+        const rightPad = blockLength - winnerName.length - leftPad;
+        let revealCount = 0; // 记录已揭示的字符数
+
+        function updateDisplay() {
           if (cancelAnimation) {
-            element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:15px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+            element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:15px;height:20px;vertical-align:middle;margin-right:5px;">${winnerName}`;
             return resolve();
           }
-          currentIndex++;
-          // 每次重新生成剩余部分的随机字符，保证“乱码”效果多样
-          let remainder = generateGarbledString(nameLength - currentIndex);
-          element.textContent = winnerName.substring(0, currentIndex) + remainder;
-          if (currentIndex < nameLength) {
-            let t = setTimeout(revealNext, 200);
+          // 生成左侧随机字符块
+          let leftRandom = generateRandomChars(leftPad);
+          // 揭示中奖姓名部分：前 revealCount 个字显示正确，余下部分显示随机字符
+          let revealed = winnerName.substring(0, revealCount);
+          let middleRandom = generateRandomChars(winnerName.length - revealCount);
+          // 生成右侧随机字符块
+          let rightRandom = generateRandomChars(rightPad);
+          // 拼接整体显示字符串
+          element.textContent = leftRandom + revealed + middleRandom + rightRandom;
+          
+          if (revealCount < winnerName.length) {
+            revealCount++;
+            let t = setTimeout(updateDisplay, 200); // 延迟200ms，每步揭示一个字符，可调
             activeTimers.push(t);
           } else {
-            // 揭示完成后延时启动右移及图片插入动画
+            // 完全揭示后延时启动右移及图片插入动画
             let t = setTimeout(() => {
               if (cancelAnimation) {
-                element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+                element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:15px;height:20px;vertical-align:middle;margin-right:5px;">${winnerName}`;
                 return resolve();
               }
               element.style.transition = 'all 0.5s ease-out';
-              element.style.paddingLeft = '50px';  // 为图片预留空间
-              element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+              // 调整内边距为图片预留空间，图片也可以调整为更小尺寸
+              element.style.paddingLeft = '30px';
+              element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:15px;height:20px;vertical-align:middle;margin-right:5px;">${winnerName}`;
               let t2 = setTimeout(() => { resolve(); }, 500);
               activeTimers.push(t2);
             }, 500);
@@ -258,7 +274,7 @@
           }
         }
         
-        revealNext();
+        updateDisplay();
       });
     }
 
@@ -281,7 +297,7 @@
         currentRow.appendChild(winnerDiv);
         await animateWinner(winnerDiv, winners[i]);
         colCount++;
-        // 延时再显示下一个
+        // 延时再显示下一个中奖者
         await new Promise(r => {
           let t = setTimeout(r, 300);
           activeTimers.push(t);
@@ -305,7 +321,7 @@
           if (index >= winners.length) break;
           let winnerDiv = document.createElement('div');
           winnerDiv.className = 'winner';
-          winnerDiv.innerHTML = `<img src="${getImage(winners[index])}" alt="${winners[index]}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winners[index]}`;
+          winnerDiv.innerHTML = `<img src="${getImage(winners[index])}" alt="${winners[index]}" style="width:15px;height:20px;vertical-align:middle;margin-right:5px;">${winners[index]}`;
           row.appendChild(winnerDiv);
         }
         displayContainer.appendChild(row);
