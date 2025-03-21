@@ -127,6 +127,10 @@
       background: #f44336;
       color: #fff;
     }
+    #clearBtn {
+      background: #999;
+      color: #fff;
+    }
     label {
       color: #fff;
       font-size: 18px;
@@ -172,6 +176,7 @@
     <div class="controls">
       <button id="startBtn">开始抽取</button>
       <button id="skipBtn" disabled>跳过动画</button>
+      <button id="clearBtn" disabled>清除结果</button>
     </div>
   </div>
   <!-- 彩蛋图片 -->
@@ -188,10 +193,14 @@
       activeTimers.forEach(t => clearTimeout(t));
       activeTimers = [];
       pages = [];
+      currentPage = 0;
       paginationControls.innerHTML = '';
       displayContainer.innerHTML = '';
+      startBtn.disabled = false;
+      skipBtn.disabled = true;
+      clearBtn.disabled = true;
     }
-    
+
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -220,6 +229,7 @@
     const paginationControls = document.getElementById('paginationControls');
     const startBtn = document.getElementById('startBtn');
     const skipBtn = document.getElementById('skipBtn');
+    const clearBtn = document.getElementById('clearBtn');
     const winnerCountInput = document.getElementById('winnerCount');
     let pages = [];
     let currentPage = 0;
@@ -247,7 +257,7 @@
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // 动画：逐字揭示，每个字母在前一个完全固定后创建并显示
+    // 动画：顺序逐字显示，每个字母在前一个完全固定后创建显示
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
@@ -322,9 +332,11 @@
         updatePaginationControls();
         await animatePage(i);
       }
+      // 播放完毕后启用清除按钮
+      clearBtn.disabled = false;
     }
 
-    // 直接显示某一页（静态结果）
+    // 直接显示某一页的中奖结果（静态）
     function displayPage(pageIndex) {
       displayContainer.innerHTML = '';
       let pageWinners = pages[pageIndex];
@@ -383,7 +395,7 @@
       return row;
     }
 
-    // 分页：每页最多6个中奖者
+    // 分页函数：每页最多6个中奖者
     function paginateWinners(winners) {
       let paged = [];
       for (let i = 0; i < winners.length; i += 6) {
@@ -393,9 +405,10 @@
     }
 
     startBtn.addEventListener('click', async function() {
-      // 重置所有全局状态
       resetExtraction();
-      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
+      names = nameListTextarea.value.split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
       if (names.length < winnerCount) {
         alert("名单中的名字数量少于抽取人数，请增加名单数量！");
@@ -438,6 +451,10 @@
       currentPage = 0;
       updatePaginationControls();
       displayPage(0);
+    });
+
+    clearBtn.addEventListener('click', function() {
+      resetExtraction();
     });
 
     function refreshEasterEgg() {
