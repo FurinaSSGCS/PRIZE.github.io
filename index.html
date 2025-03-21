@@ -72,11 +72,11 @@
       align-items: center;
       height: 100px;
     }
-    /* 中奖者单元格：宽度 120px、高度 60px（更宽、更扁） */
+    /* 中奖者单元格：设置宽度更宽、高度更短 */
     .winner {
       position: relative;
-      width: 120px;
-      height: 60px;
+      width: 180px;    /* 更宽 */
+      height: 40px;    /* 更短 */
       font-size: 16px;
       font-weight: bold;
       color: #333;
@@ -199,7 +199,7 @@
     const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
 
-    // 根据名字返回对应图片（可扩展映射）
+    // 根据名字返回对应图片（映射可扩展）
     function getImage(name) {
       const imageMap = {
         "白洲梓": "001.jpg"
@@ -225,13 +225,12 @@
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    /*
-      animateWinner 函数：
-      - 为中奖者姓名中每个字符创建一个 <span class="char-span">（数量与姓名长度相同）；
-      - 使用一个 for 循环（配合 async/await）顺序更新每个 span：
-           对当前 span 进行 40 次更新（每次间隔 25ms，总共 1 秒），每次只更新该 span 的内容为随机字符；
-           更新结束后固定为正确字符，然后开始下一个 span 的更新；
-      - 所有字符更新完毕后，将整个单元格转换为居中显示图片和姓名。
+    /* 
+       动画逻辑：
+       - 为中奖姓名中的每个字符创建一个 <span class="char-span">（数量与姓名长度相同）；
+       - 使用 async/await 顺序更新每个 span：对当前 span 进行 40 次更新（每 25ms 一次，总计 1 秒），
+         更新过程中只替换该 span 的内容为随机字符，更新结束后固定为正确字符，再开始下一个 span；
+       - 所有字符更新完毕后，将单元格内容转换为居中显示图片和姓名。
     */
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
@@ -244,7 +243,6 @@
           element.appendChild(span);
           spans.push(span);
         }
-        // 顺序揭示每个字母
         async function revealLetters() {
           for (let i = 0; i < winnerName.length; i++) {
             let iterations = 0;
@@ -271,7 +269,7 @@
       });
     }
 
-    // 顺序动画显示中奖者（每行最多3个）
+    // 顺序动画显示中奖者（每行最多 3 个）
     async function animateWinnersSequentially(winners) {
       displayContainer.innerHTML = '';
       displayContainer.style.position = 'relative';
@@ -331,7 +329,7 @@
       return row;
     }
 
-    // 开始抽取
+    // 开始抽取：验证名单、随机抽取中奖者、启动动画
     startBtn.addEventListener('click', async function() {
       names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
@@ -354,7 +352,7 @@
       await animateWinnersSequentially(winners);
     });
 
-    // 跳过动画
+    // 跳过动画：取消所有定时器，直接显示最终结果
     skipBtn.addEventListener('click', function() {
       cancelAnimation = true;
       activeTimers.forEach(t => clearTimeout(t));
