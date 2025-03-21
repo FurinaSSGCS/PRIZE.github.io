@@ -101,7 +101,7 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字母的 span，间距加大 */
+    /* 每个字母的 span，增加右边距避免重叠 */
     .char-span {
       display: inline-block;
       width: 1ch;
@@ -187,7 +187,7 @@
     WEB作者:白洲梓(Azusa)同学
   </div>
   <script>
-    // 清除所有抽取结果与状态
+    // 完全重置所有状态（确保每轮抽奖从干净状态开始）
     function resetExtraction() {
       cancelAnimation = false;
       activeTimers.forEach(t => clearTimeout(t));
@@ -200,7 +200,7 @@
       skipBtn.disabled = true;
       clearBtn.disabled = true;
     }
-
+    
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -221,7 +221,7 @@
       resetExtraction();
       refreshEasterEgg();
     });
-
+    
     let names = [];
     let cancelAnimation = false;
     let activeTimers = [];
@@ -234,14 +234,14 @@
     const winnerCountInput = document.getElementById('winnerCount');
     let pages = [];
     let currentPage = 0;
-
+    
     function getImage(name) {
       const imageMap = {
         "白洲梓": "001.jpg"
       };
       return imageMap[name] || "ipt.jpg";
     }
-
+    
     function weightedRandomChoice(arr) {
       let weights = arr.map(name => name === "白洲梓" ? 1.0001 : 1);
       let total = weights.reduce((acc, w) => acc + w, 0);
@@ -252,13 +252,13 @@
       }
       return arr.length - 1;
     }
-
+    
     function generateRandomChar() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
-
-    // 逐字揭示动画：前一个字母固定后再创建下一个字母的 span
+    
+    // 逐字揭示动画：确保每个字母在前一个完全固定后才创建并显示
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
@@ -299,8 +299,8 @@
         revealLetter(0);
       });
     }
-
-    // 每页动画播放，每页最多6个中奖者（2行×3个）
+    
+    // 分页动画播放：每页最多6个中奖者（2行×3个）
     async function animatePage(pageIndex) {
       displayContainer.innerHTML = '';
       let currentRow = createNewRow();
@@ -325,7 +325,7 @@
         });
       }
     }
-
+    
     // 自动播放所有页动画
     async function animateAllPages() {
       for (let i = 0; i < pages.length; i++) {
@@ -335,8 +335,8 @@
       }
       clearBtn.disabled = false;
     }
-
-    // 直接显示指定页的结果（静态）
+    
+    // 静态显示指定页结果
     function displayPage(pageIndex) {
       displayContainer.innerHTML = '';
       let pageWinners = pages[pageIndex];
@@ -357,7 +357,7 @@
         displayContainer.appendChild(row);
       }
     }
-
+    
     // 更新分页控件
     function updatePaginationControls() {
       if (pages.length <= 1) {
@@ -388,14 +388,14 @@
       paginationControls.appendChild(prevBtn);
       paginationControls.appendChild(nextBtn);
     }
-
+    
     function createNewRow() {
       const row = document.createElement('div');
       row.className = 'winner-row';
       return row;
     }
-
-    // 将中奖者数组分页，每页最多6个
+    
+    // 分页：每页最多6个中奖者
     function paginateWinners(winners) {
       let paged = [];
       for (let i = 0; i < winners.length; i += 6) {
@@ -403,12 +403,10 @@
       }
       return paged;
     }
-
+    
     startBtn.addEventListener('click', async function() {
       resetExtraction();
-      names = nameListTextarea.value.split('\n')
-                    .map(name => name.trim())
-                    .filter(name => name !== '');
+      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
       if (names.length < winnerCount) {
         alert("名单中的名字数量少于抽取人数，请增加名单数量！");
@@ -429,7 +427,7 @@
       updatePaginationControls();
       await animateAllPages();
     });
-
+    
     skipBtn.addEventListener('click', function() {
       cancelAnimation = true;
       activeTimers.forEach(t => clearTimeout(t));
@@ -453,11 +451,11 @@
       updatePaginationControls();
       displayPage(0);
     });
-
+    
     clearBtn.addEventListener('click', function() {
       resetExtraction();
     });
-
+    
     function refreshEasterEgg() {
       var egg = document.getElementById('easterEgg');
       var margin = 10;
