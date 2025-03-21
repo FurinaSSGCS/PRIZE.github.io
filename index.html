@@ -19,13 +19,12 @@
       height: 100%;
       object-fit: cover;
       z-index: -1;
-      display: none; /* 默认隐藏 */
-      pointer-events: none; /* 禁止用户交互 */
+      display: none;
+      pointer-events: none;
     }
     .container {
       width: 100%;
       height: 100%;
-      /* 背景图片将在手机端显示，电脑端背景由视频覆盖 */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -53,26 +52,40 @@
       color: #000;
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
       backdrop-filter: blur(5px);
+      margin-bottom: 10px;
     }
+    /* 显示中奖者区域，固定高度避免遮挡下方控件 */
+    #displayContainer {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      height: 150px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 10px;
+    }
+    /* 每行容器：采用 flex 布局，直接排列 */
+    .winner-row {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 100px;
+    }
+    /* 单个中奖者块 */
     .winner {
-      font-size: 48px;
-      font-weight: bold;
-      margin: 10px;
-      width: 300px;
+      position: relative;
+      width: 120px;
       height: 80px;
       line-height: 80px;
-      background: rgba(255, 255, 255, 0.8);
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      background: #fff;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.3);
       text-align: center;
-      color: #333;
-      animation: pop 0.5s infinite;
-    }
-    #displayContainer {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 20px;
+      overflow: hidden;
     }
     .controls {
       margin-top: 10px;
@@ -89,7 +102,7 @@
       background: #4CAF50;
       color: #fff;
     }
-    #stopBtn {
+    #skipBtn {
       background: #f44336;
       color: #fff;
     }
@@ -106,12 +119,6 @@
       border: none;
       margin-right: 20px;
     }
-    @keyframes pop {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.1); opacity: 0.8; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    /* 底部版权信息样式 */
     #footer {
       position: fixed;
       bottom: 0;
@@ -125,7 +132,7 @@
   </style>
 </head>
 <body>
-  <!-- 电脑端视频背景，添加 oncontextmenu 禁用右键 -->
+  <!-- 电脑端视频背景 -->
   <video id="videoBackground" autoplay loop muted playsinline oncontextmenu="return false;">
     <source src="https://video3-cdn-hippo-prod-transcoding.hippovideo.io/transcoding/1820551/1727002/43459943/43459943_playlist_540_360.m3u8?m3u8_sign=3245c49100c693f792b17db8ea4fc7cfdfc489219d2c814be4ca2780941cff22" type="video/mp4">
     您的浏览器不支持 HTML5 视频。
@@ -133,93 +140,67 @@
 
   <div class="container">
     <h1>随机名单抽取器</h1>
-    <!-- 用户输入名单，每行一个名字 -->
     <textarea id="nameList" placeholder="请输入名单，每行一个名字"></textarea>
-    <!-- 选择抽取人数 -->
+    <!-- 显示中奖者区域 -->
+    <div id="displayContainer"></div>
     <div class="controls">
       <label for="winnerCount">抽取人数：</label>
       <input type="number" id="winnerCount" min="1" value="1">
     </div>
-    <!-- 显示获奖者的区域 -->
-    <div id="displayContainer"></div>
     <div class="controls">
       <button id="startBtn">开始抽取</button>
-      <button id="stopBtn" disabled>停止抽取</button>
+      <button id="skipBtn" disabled>跳过动画</button>
     </div>
   </div>
 
-  <!-- 彩蛋图片，固定定位、尺寸较小 -->
+  <!-- 彩蛋图片 -->
   <img id="easterEgg" src="easterEgg.png" alt="彩蛋" style="position: fixed; width: 25px; height: 25px; cursor: pointer; z-index: 9999;">
-
-  <!-- 底部版权信息 -->
   <div id="footer">
+    版本信息:Version Alpha_Test 1.0<br>
     补课部©版权所有 &nbsp;&nbsp; ®CopyRight2025-2025<br>
     WEB作者:白洲梓(Azusa)同学
   </div>
 
   <script>
-    // 根据访问设备类型设置背景
+    // 根据设备设置背景
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (isMobile) {
-        // 手机端使用背景图片
         container.style.background = "url('background1.jpg') no-repeat center center";
         container.style.backgroundSize = "cover";
       } else {
-        // 电脑端使用视频背景，如果浏览器支持则显示视频
         var video = document.getElementById("videoBackground");
         if (video && video.canPlayType && video.canPlayType("video/mp4").replace(/no/, "")) {
           video.style.display = "block";
-          container.style.background = "none"; // 移除容器的静态背景
-          // 防止视频暂停，监听 pause 事件并重新播放
-          video.addEventListener("pause", function() {
-            video.play();
-          });
+          container.style.background = "none";
+          video.addEventListener("pause", function() { video.play(); });
         } else {
           container.style.background = "url('background1.jpg') no-repeat center center";
           container.style.backgroundSize = "cover";
         }
       }
-      // 初始化彩蛋位置
       refreshEasterEgg();
     });
 
-    let timer = null;
-    let displayElements = [];
     let names = [];
+    let cancelAnimation = false;  // 控制是否取消动画
+    let activeTimers = [];        // 存储所有定时器ID，便于取消
     const nameListTextarea = document.getElementById('nameList');
     const displayContainer = document.getElementById('displayContainer');
     const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
+    const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
 
-    startBtn.addEventListener('click', function() {
-      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
-      const winnerCount = parseInt(winnerCountInput.value) || 1;
-      if (names.length < winnerCount) {
-        alert("名单中的名字数量少于抽取人数，请增加名单数量！");
-        return;
-      }
-      displayContainer.innerHTML = '';
-      displayElements = [];
-      for (let i = 0; i < winnerCount; i++) {
-        const div = document.createElement('div');
-        div.className = 'winner';
-        div.textContent = '?';
-        displayContainer.appendChild(div);
-        displayElements.push(div);
-      }
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      timer = setInterval(() => {
-        displayElements.forEach(div => {
-          const randomIndex = Math.floor(Math.random() * names.length);
-          div.textContent = names[randomIndex];
-        });
-      }, 100);
-    });
+    // 根据名字返回对应图片（映射可扩展）
+    function getImage(name) {
+      const imageMap = {
+        "白洲梓": "001.jpg"
+      };
+      return imageMap[name] || "ipt.jpg";
+    }
 
+    // 随机权重选择（示例中“白洲梓”权重稍高）
     function weightedRandomChoice(arr) {
       let weights = arr.map(name => name === "白洲梓" ? 1.0001 : 1);
       let total = weights.reduce((acc, w) => acc + w, 0);
@@ -231,24 +212,163 @@
       return arr.length - 1;
     }
 
-    stopBtn.addEventListener('click', function() {
-      clearInterval(timer);
-      timer = null;
-      const winnerCount = displayElements.length;
+    // 生成指定长度的随机乱码字符串（从字母和数字中抽取）
+    function generateGarbledString(length) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    // 动画单个中奖者：依次揭示正确字符，再启动右移添加图片
+    function animateWinner(element, winnerName) {
+      return new Promise(resolve => {
+        const nameLength = winnerName.length;
+        element.textContent = generateGarbledString(nameLength);
+        let currentIndex = 0;
+        
+        function revealNext() {
+          if (cancelAnimation) {
+            element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+            return resolve();
+          }
+          currentIndex++;
+          // 每次重新生成剩余部分的随机字符，保证“乱码”效果多样
+          let remainder = generateGarbledString(nameLength - currentIndex);
+          element.textContent = winnerName.substring(0, currentIndex) + remainder;
+          if (currentIndex < nameLength) {
+            let t = setTimeout(revealNext, 100);
+            activeTimers.push(t);
+          } else {
+            // 揭示完成后延时启动右移及图片插入动画
+            let t = setTimeout(() => {
+              if (cancelAnimation) {
+                element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+                return resolve();
+              }
+              element.style.transition = 'all 0.5s ease-out';
+              element.style.paddingLeft = '50px';  // 为图片预留空间
+              element.innerHTML = `<img src="${getImage(winnerName)}" alt="${winnerName}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winnerName}`;
+              let t2 = setTimeout(() => { resolve(); }, 500);
+              activeTimers.push(t2);
+            }, 500);
+            activeTimers.push(t);
+          }
+        }
+        
+        revealNext();
+      });
+    }
+
+    // 顺序动画显示中奖者（每行最多3个）
+    async function animateWinnersSequentially(winners) {
+      displayContainer.innerHTML = '';
+      displayContainer.style.position = 'relative';
+      let currentRow = createNewRow();
+      displayContainer.appendChild(currentRow);
+      let colCount = 0;
+      for (let i = 0; i < winners.length; i++) {
+        if (cancelAnimation) break;
+        if (colCount === 3) {
+          currentRow = createNewRow();
+          displayContainer.appendChild(currentRow);
+          colCount = 0;
+        }
+        const winnerDiv = document.createElement('div');
+        winnerDiv.className = 'winner';
+        currentRow.appendChild(winnerDiv);
+        await animateWinner(winnerDiv, winners[i]);
+        colCount++;
+        // 延时再显示下一个
+        await new Promise(r => {
+          let t = setTimeout(r, 300);
+          activeTimers.push(t);
+        });
+      }
+      // 动画完成后重置按钮状态
+      startBtn.disabled = false;
+      skipBtn.disabled = true;
+    }
+
+    // 直接排列显示中奖者（跳过动画时调用）
+    function displayWinnersDirectly(winners) {
+      displayContainer.innerHTML = '';
+      displayContainer.style.position = 'relative';
+      const rowCount = Math.ceil(winners.length / 3);
+      for (let i = 0; i < rowCount; i++) {
+        let row = document.createElement('div');
+        row.className = 'winner-row';
+        for (let j = 0; j < 3; j++) {
+          let index = i * 3 + j;
+          if (index >= winners.length) break;
+          let winnerDiv = document.createElement('div');
+          winnerDiv.className = 'winner';
+          winnerDiv.innerHTML = `<img src="${getImage(winners[index])}" alt="${winners[index]}" style="width:40px;height:40px;vertical-align:middle;margin-right:5px;">${winners[index]}`;
+          row.appendChild(winnerDiv);
+        }
+        displayContainer.appendChild(row);
+      }
+      startBtn.disabled = false;
+      skipBtn.disabled = true;
+    }
+
+    // 创建新行容器
+    function createNewRow() {
+      const row = document.createElement('div');
+      row.className = 'winner-row';
+      return row;
+    }
+
+    // 开始抽取：验证名单、随机抽取中奖者、启动动画
+    startBtn.addEventListener('click', async function() {
+      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
+      const winnerCount = parseInt(winnerCountInput.value) || 1;
+      if (names.length < winnerCount) {
+        alert("名单中的名字数量少于抽取人数，请增加名单数量！");
+        return;
+      }
+      // 重置取消标志及定时器记录
+      cancelAnimation = false;
+      activeTimers.forEach(t => clearTimeout(t));
+      activeTimers = [];
+      startBtn.disabled = true;
+      skipBtn.disabled = false;
+      // 随机抽取不重复中奖者
       let availableNames = [...names];
       let winners = [];
       for (let i = 0; i < winnerCount; i++) {
-         let index = weightedRandomChoice(availableNames);
-         winners.push(availableNames[index]);
-         availableNames.splice(index, 1);
+        let idx = weightedRandomChoice(availableNames);
+        winners.push(availableNames[idx]);
+        availableNames.splice(idx, 1);
       }
-      for (let i = 0; i < winners.length; i++) {
-        displayElements[i].textContent = winners[i];
-      }
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
+      await animateWinnersSequentially(winners);
     });
 
+    // 跳过动画：取消所有动画定时器，直接显示最终排列结果
+    skipBtn.addEventListener('click', function() {
+      cancelAnimation = true;
+      activeTimers.forEach(t => clearTimeout(t));
+      activeTimers = [];
+      const winnerCount = parseInt(winnerCountInput.value) || 1;
+      if (names.length < winnerCount) {
+        alert("名单中的名字数量少于抽取人数，请增加名单数量！");
+        startBtn.disabled = false;
+        skipBtn.disabled = true;
+        return;
+      }
+      let availableNames = [...names];
+      let winners = [];
+      for (let i = 0; i < winnerCount; i++) {
+        let idx = weightedRandomChoice(availableNames);
+        winners.push(availableNames[idx]);
+        availableNames.splice(idx, 1);
+      }
+      displayWinnersDirectly(winners);
+    });
+
+    // 彩蛋
     function refreshEasterEgg() {
       var egg = document.getElementById('easterEgg');
       var margin = 10;
