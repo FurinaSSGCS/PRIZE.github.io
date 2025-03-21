@@ -48,24 +48,36 @@
       font-size: 16px;
       resize: none;
       outline: none;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255,255,255,0.2);
       color: #000;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
       backdrop-filter: blur(5px);
       margin-bottom: 10px;
     }
-    /* 显示中奖者区域：增大高度，允许滚动 */
+    /* 显示中奖者区域（固定高度，超出时滚动） */
     #displayContainer {
       position: relative;
       width: 100%;
       max-width: 500px;
-      height: 300px; /* 原先150px，可根据需要调整 */
-      overflow-y: auto; /* 允许垂直滚动 */
-      margin-bottom: 20px;
+      height: 150px;
+      overflow: hidden;
       background: rgba(255,255,255,0.8);
       border-radius: 10px;
     }
-    /* 每行容器，行距较小 */
+    /* 分页控制区域 */
+    #paginationControls {
+      margin-top: 5px;
+      text-align: center;
+    }
+    #paginationControls button {
+      font-size: 16px;
+      padding: 5px 10px;
+      margin: 0 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    /* 每行容器 */
     .winner-row {
       display: flex;
       justify-content: space-around;
@@ -73,7 +85,7 @@
       height: 80px;
       margin-bottom: 5px;
     }
-    /* 中奖者单元格：更宽更扁 */
+    /* 中奖者单元格：宽度更宽，高度更短 */
     .winner {
       position: relative;
       width: 180px;
@@ -89,12 +101,12 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字母的 span，间距加大 */
+    /* 每个字母的 span，增加右边距防重叠 */
     .char-span {
       display: inline-block;
       width: 1ch;
       text-align: center;
-      margin-right: 4px; 
+      margin-right: 4px;
     }
     .controls {
       margin-top: 10px;
@@ -134,7 +146,7 @@
       width: 100%;
       text-align: center;
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255,255,255,0.6);
       padding: 5px 0;
       pointer-events: none;
     }
@@ -146,12 +158,13 @@
     <source src="https://video3-cdn-hippo-prod-transcoding.hippovideo.io/transcoding/1820551/1727002/43459943/43459943_playlist_540_360.m3u8" type="video/mp4">
     您的浏览器不支持 HTML5 视频。
   </video>
-
   <div class="container">
     <h1>随机名单抽取器</h1>
     <textarea id="nameList" placeholder="请输入名单，每行一个名字"></textarea>
-    <!-- 显示中奖者区域（可滚动） -->
+    <!-- 显示中奖者区域 -->
     <div id="displayContainer"></div>
+    <!-- 分页控制 -->
+    <div id="paginationControls"></div>
     <div class="controls">
       <label for="winnerCount">抽取人数：</label>
       <input type="number" id="winnerCount" min="1" value="1">
@@ -161,17 +174,15 @@
       <button id="skipBtn" disabled>跳过动画</button>
     </div>
   </div>
-
   <!-- 彩蛋图片 -->
-  <img id="easterEgg" src="easterEgg.png" alt="彩蛋" 
-       style="position: fixed; width: 25px; height: 25px; cursor: pointer; z-index: 9999;">
+  <img id="easterEgg" src="easterEgg.png" alt="彩蛋" style="position: fixed; width: 25px; height: 25px; cursor: pointer; z-index: 9999;">
   <div id="footer">
     版本信息:Version Alpha_Test 1.0<br>
     补课部©版权所有 &nbsp;&nbsp; ®CopyRight2025-2025<br>
     WEB作者:白洲梓(Azusa)同学
   </div>
-
   <script>
+    // 设置背景
     document.addEventListener("DOMContentLoaded", function() {
       var container = document.querySelector('.container');
       var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -193,13 +204,16 @@
     });
 
     let names = [];
-    let cancelAnimation = false;  
-    let activeTimers = [];        
+    let cancelAnimation = false;
+    let activeTimers = [];
     const nameListTextarea = document.getElementById('nameList');
     const displayContainer = document.getElementById('displayContainer');
+    const paginationControls = document.getElementById('paginationControls');
     const startBtn = document.getElementById('startBtn');
     const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
+    let pages = [];      // 存放分好页的中奖者数组
+    let currentPage = 0; // 当前页索引
 
     function getImage(name) {
       const imageMap = {
@@ -224,26 +238,24 @@
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // 按顺序逐字显示：每个字母在前一个固定后才出现
+    // 顺序动画显示：每个字母一个一个显示，前一个完成后再显示下一个
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
         async function revealLetter(index) {
           if (cancelAnimation) {
             element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                   <img src="${getImage(winnerName)}" 
-                                        style="width:24px;height:24px;margin-right:5px;">
-                                   ${winnerName}
-                                 </div>`;
+                                  <img src="${getImage(winnerName)}" style="width:24px;height:24px;margin-right:5px;">
+                                  ${winnerName}
+                                  </div>`;
             return resolve();
           }
           if (index >= winnerName.length) {
             element.style.transition = 'all 0.5s ease-out';
             element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                   <img src="${getImage(winnerName)}" 
-                                        style="width:24px;height:24px;margin-right:5px;">
-                                   ${winnerName}
-                                 </div>`;
+                                  <img src="${getImage(winnerName)}" style="width:24px;height:24px;margin-right:5px;">
+                                  ${winnerName}
+                                  </div>`;
             let t = setTimeout(() => { resolve(); }, 500);
             activeTimers.push(t);
             return;
@@ -252,8 +264,6 @@
           span.className = 'char-span';
           span.style.marginRight = '4px';
           element.appendChild(span);
-
-          // 每个字母更新 40 次(1秒)，每次间隔25ms
           let iterations = 0;
           while (iterations < 40 && !cancelAnimation) {
             span.textContent = generateRandomChar();
@@ -263,22 +273,21 @@
               activeTimers.push(t);
             });
           }
-          // 固定为正确字符
           span.textContent = winnerName[index];
-          // 下一个字母
           await revealLetter(index + 1);
         }
         revealLetter(0);
       });
     }
 
-    async function animateWinnersSequentially(winners) {
+    // 按页播放动画，每页最多6个中奖者
+    async function animatePage(pageIndex) {
       displayContainer.innerHTML = '';
-      displayContainer.style.position = 'relative';
       let currentRow = createNewRow();
       displayContainer.appendChild(currentRow);
+      let pageWinners = pages[pageIndex];
       let colCount = 0;
-      for (let i = 0; i < winners.length; i++) {
+      for (let i = 0; i < pageWinners.length; i++) {
         if (cancelAnimation) break;
         if (colCount === 3) {
           currentRow = createNewRow();
@@ -288,39 +297,75 @@
         const winnerDiv = document.createElement('div');
         winnerDiv.className = 'winner';
         currentRow.appendChild(winnerDiv);
-        await animateWinner(winnerDiv, winners[i]);
+        await animateWinner(winnerDiv, pageWinners[i]);
         colCount++;
         await new Promise(r => {
           let t = setTimeout(r, 300);
           activeTimers.push(t);
         });
       }
-      startBtn.disabled = false;
-      skipBtn.disabled = true;
     }
 
-    function displayWinnersDirectly(winners) {
+    // 动画播放所有页：自动从第一页播放，播放完自动切换到下一页（若有）
+    async function animateAllPages() {
+      for (let i = 0; i < pages.length; i++) {
+        currentPage = i;
+        updatePaginationControls();
+        await animatePage(i);
+      }
+    }
+
+    // 直接显示某一页的中奖结果（不播放动画）
+    function displayPage(pageIndex) {
       displayContainer.innerHTML = '';
-      displayContainer.style.position = 'relative';
-      const rowCount = Math.ceil(winners.length / 3);
+      let pageWinners = pages[pageIndex];
+      let rowCount = Math.ceil(pageWinners.length / 3);
       for (let i = 0; i < rowCount; i++) {
         let row = createNewRow();
         for (let j = 0; j < 3; j++) {
           let index = i * 3 + j;
-          if (index >= winners.length) break;
+          if (index >= pageWinners.length) break;
           let winnerDiv = document.createElement('div');
           winnerDiv.className = 'winner';
           winnerDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
-                                   <img src="${getImage(winners[index])}" 
-                                        style="width:24px;height:24px;margin-right:5px;">
-                                   ${winners[index]}
-                                 </div>`;
+                                    <img src="${getImage(pageWinners[index])}" style="width:24px;height:24px;margin-right:5px;">
+                                    ${pageWinners[index]}
+                                  </div>`;
           row.appendChild(winnerDiv);
         }
         displayContainer.appendChild(row);
       }
-      startBtn.disabled = false;
-      skipBtn.disabled = true;
+    }
+
+    // 更新分页控件
+    function updatePaginationControls() {
+      if (pages.length <= 1) {
+        paginationControls.innerHTML = '';
+        return;
+      }
+      paginationControls.innerHTML = '';
+      let prevBtn = document.createElement('button');
+      prevBtn.textContent = "上一页";
+      prevBtn.disabled = (currentPage === 0);
+      prevBtn.addEventListener('click', function() {
+        if (currentPage > 0) {
+          currentPage--;
+          displayPage(currentPage);
+          updatePaginationControls();
+        }
+      });
+      let nextBtn = document.createElement('button');
+      nextBtn.textContent = "下一页";
+      nextBtn.disabled = (currentPage === pages.length - 1);
+      nextBtn.addEventListener('click', function() {
+        if (currentPage < pages.length - 1) {
+          currentPage++;
+          displayPage(currentPage);
+          updatePaginationControls();
+        }
+      });
+      paginationControls.appendChild(prevBtn);
+      paginationControls.appendChild(nextBtn);
     }
 
     function createNewRow() {
@@ -329,10 +374,17 @@
       return row;
     }
 
+    // 将中奖者数组分页，每页最多6个
+    function paginateWinners(winners) {
+      let paged = [];
+      for (let i = 0; i < winners.length; i += 6) {
+        paged.push(winners.slice(i, i + 6));
+      }
+      return paged;
+    }
+
     startBtn.addEventListener('click', async function() {
-      names = nameListTextarea.value.split('\n')
-                    .map(name => name.trim())
-                    .filter(name => name !== '');
+      names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
       if (names.length < winnerCount) {
         alert("名单中的名字数量少于抽取人数，请增加名单数量！");
@@ -343,7 +395,7 @@
       activeTimers = [];
       startBtn.disabled = true;
       skipBtn.disabled = false;
-
+      // 抽取中奖者（不重复）
       let availableNames = [...names];
       let winners = [];
       for (let i = 0; i < winnerCount; i++) {
@@ -351,7 +403,12 @@
         winners.push(availableNames[idx]);
         availableNames.splice(idx, 1);
       }
-      await animateWinnersSequentially(winners);
+      // 分页：每页最多6个中奖者
+      pages = paginateWinners(winners);
+      currentPage = 0;
+      updatePaginationControls();
+      // 如果用户没有跳过动画，自动依次播放各页动画
+      await animateAllPages();
     });
 
     skipBtn.addEventListener('click', function() {
@@ -372,7 +429,10 @@
         winners.push(availableNames[idx]);
         availableNames.splice(idx, 1);
       }
-      displayWinnersDirectly(winners);
+      pages = paginateWinners(winners);
+      currentPage = 0;
+      updatePaginationControls();
+      displayPage(0);
     });
 
     function refreshEasterEgg() {
