@@ -65,18 +65,19 @@
       background: rgba(255,255,255,0.8);
       border-radius: 10px;
     }
-    /* 每行容器 */
+    /* 每行容器，间距缩小 */
     .winner-row {
       display: flex;
       justify-content: space-around;
       align-items: center;
-      height: 100px;
+      height: 80px;
+      margin-bottom: 5px;
     }
-    /* 中奖者单元格：设置宽度更宽、高度更短 */
+    /* 中奖者单元格：宽度更宽，高度更短 */
     .winner {
       position: relative;
-      width: 180px;    /* 更宽 */
-      height: 40px;    /* 更短 */
+      width: 180px;
+      height: 40px;
       font-size: 16px;
       font-weight: bold;
       color: #333;
@@ -88,11 +89,12 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字母 span */
+    /* 每个字母的 span，增加右边距避免重叠 */
     .char-span {
       display: inline-block;
       width: 1ch;
       text-align: center;
+      margin-right: 2px;
     }
     .controls {
       margin-top: 10px;
@@ -191,7 +193,7 @@
     });
 
     let names = [];
-    let cancelAnimation = false;  // 用于控制是否取消动画
+    let cancelAnimation = false;  // 控制是否取消动画
     let activeTimers = [];        // 存储所有定时器ID
     const nameListTextarea = document.getElementById('nameList');
     const displayContainer = document.getElementById('displayContainer');
@@ -219,53 +221,57 @@
       return arr.length - 1;
     }
 
-    // 生成单个随机字符
+    // 生成一个随机字符
     function generateRandomChar() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    /* 
-       动画逻辑：
-       - 为中奖姓名中的每个字符创建一个 <span class="char-span">（数量与姓名长度相同）；
-       - 使用 async/await 顺序更新每个 span：对当前 span 进行 40 次更新（每 25ms 一次，总计 1 秒），
-         更新过程中只替换该 span 的内容为随机字符，更新结束后固定为正确字符，再开始下一个 span；
-       - 所有字符更新完毕后，将单元格内容转换为居中显示图片和姓名。
+    /*
+      修改后的 animateWinner：
+      - 按顺序逐个创建并显示每个字母的 span，前一个字母完全固定后才创建下一个；
+      - 每个字母更新 40 次（1秒，每25ms 一次），期间只更新当前 span；
+      - 每个 span 之间有一定的右边距，防止字符重叠；
+      - 完成所有字母更新后，将单元格转换为居中显示图片和姓名。
     */
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
         element.innerHTML = '';
-        let spans = [];
-        for (let i = 0; i < winnerName.length; i++) {
+        async function revealLetter(index) {
+          if (cancelAnimation) {
+            element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
+                                    <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
+                                    ${winnerName}
+                                  </div>`;
+            return resolve();
+          }
+          if (index >= winnerName.length) {
+            element.style.transition = 'all 0.5s ease-out';
+            element.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
+                                    <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
+                                    ${winnerName}
+                                  </div>`;
+            let t = setTimeout(() => { resolve(); }, 500);
+            activeTimers.push(t);
+            return;
+          }
           let span = document.createElement('span');
           span.className = 'char-span';
-          span.textContent = generateRandomChar();
+          span.style.marginRight = '2px';
           element.appendChild(span);
-          spans.push(span);
-        }
-        async function revealLetters() {
-          for (let i = 0; i < winnerName.length; i++) {
-            let iterations = 0;
-            while (iterations < 40 && !cancelAnimation) {
-              spans[i].textContent = generateRandomChar();
-              iterations++;
-              await new Promise(r => {
-                let t = setTimeout(r, 25);
-                activeTimers.push(t);
-              });
-            }
-            spans[i].textContent = winnerName[i];
+          let iterations = 0;
+          while (iterations < 40 && !cancelAnimation) {
+            span.textContent = generateRandomChar();
+            iterations++;
+            await new Promise(r => {
+              let t = setTimeout(r, 25);
+              activeTimers.push(t);
+            });
           }
+          span.textContent = winnerName[index];
+          await revealLetter(index + 1);
         }
-        revealLetters().then(() => {
-          element.style.transition = 'all 0.5s ease-out';
-          element.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;">
-                                  <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
-                                  ${winnerName}
-                               </div>`;
-          let t = setTimeout(() => { resolve(); }, 500);
-          activeTimers.push(t);
-        });
+        revealLetter(0);
       });
     }
 
@@ -310,7 +316,7 @@
           if (index >= winners.length) break;
           let winnerDiv = document.createElement('div');
           winnerDiv.className = 'winner';
-          winnerDiv.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;">
+          winnerDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;">
                                     <img src="${getImage(winners[index])}" style="width:15px;height:20px;margin-right:5px;">
                                     ${winners[index]}
                                   </div>`;
@@ -329,7 +335,7 @@
       return row;
     }
 
-    // 开始抽取：验证名单、随机抽取中奖者、启动动画
+    // 开始抽取
     startBtn.addEventListener('click', async function() {
       names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
@@ -352,7 +358,7 @@
       await animateWinnersSequentially(winners);
     });
 
-    // 跳过动画：取消所有定时器，直接显示最终结果
+    // 跳过动画
     skipBtn.addEventListener('click', function() {
       cancelAnimation = true;
       activeTimers.forEach(t => clearTimeout(t));
