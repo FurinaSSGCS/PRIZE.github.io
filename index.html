@@ -54,13 +54,13 @@
       backdrop-filter: blur(5px);
       margin-bottom: 10px;
     }
-    /* 显示中奖者区域 */
+    /* 显示中奖者区域：增大高度，允许滚动 */
     #displayContainer {
       position: relative;
       width: 100%;
       max-width: 500px;
-      height: 150px;
-      overflow: hidden;
+      height: 300px; /* 原先150px，可根据需要调整 */
+      overflow-y: auto; /* 允许垂直滚动 */
       margin-bottom: 20px;
       background: rgba(255,255,255,0.8);
       border-radius: 10px;
@@ -94,7 +94,7 @@
       display: inline-block;
       width: 1ch;
       text-align: center;
-      margin-right: 4px; /* 原先是2px，可根据需要再调大些 */
+      margin-right: 4px; 
     }
     .controls {
       margin-top: 10px;
@@ -150,7 +150,7 @@
   <div class="container">
     <h1>随机名单抽取器</h1>
     <textarea id="nameList" placeholder="请输入名单，每行一个名字"></textarea>
-    <!-- 显示中奖者区域 -->
+    <!-- 显示中奖者区域（可滚动） -->
     <div id="displayContainer"></div>
     <div class="controls">
       <label for="winnerCount">抽取人数：</label>
