@@ -72,11 +72,11 @@
       align-items: center;
       height: 100px;
     }
-    /* 修改后的中奖者单元格：宽度更窄，高度更长 */
+    /* 中奖者单元格：宽度 120px、高度 60px（更宽、更扁） */
     .winner {
       position: relative;
-      width: 60px;     /* 窄一些 */
-      height: 120px;   /* 长一些 */
+      width: 120px;
+      height: 60px;
       font-size: 16px;
       font-weight: bold;
       color: #333;
@@ -88,7 +88,7 @@
       justify-content: center;
       overflow: hidden;
     }
-    /* 每个字母的 span */
+    /* 每个字母 span */
     .char-span {
       display: inline-block;
       width: 1ch;
@@ -191,7 +191,7 @@
     });
 
     let names = [];
-    let cancelAnimation = false;  // 控制是否取消动画
+    let cancelAnimation = false;  // 用于控制是否取消动画
     let activeTimers = [];        // 存储所有定时器ID
     const nameListTextarea = document.getElementById('nameList');
     const displayContainer = document.getElementById('displayContainer');
@@ -199,7 +199,7 @@
     const skipBtn = document.getElementById('skipBtn');
     const winnerCountInput = document.getElementById('winnerCount');
 
-    // 根据名字返回对应图片（映射可扩展）
+    // 根据名字返回对应图片（可扩展映射）
     function getImage(name) {
       const imageMap = {
         "白洲梓": "001.jpg"
@@ -207,7 +207,7 @@
       return imageMap[name] || "ipt.jpg";
     }
 
-    // 随机权重选择
+    // 随机权重选择函数
     function weightedRandomChoice(arr) {
       let weights = arr.map(name => name === "白洲梓" ? 1.0001 : 1);
       let total = weights.reduce((acc, w) => acc + w, 0);
@@ -219,22 +219,22 @@
       return arr.length - 1;
     }
 
-    // 生成一个随机字符
+    // 生成单个随机字符
     function generateRandomChar() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
       return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    /* 
-       动画逻辑：
-       - 为中奖姓名中的每个字创建一个 <span class="char-span">；
-       - 依次对每个 span 进行动画：在1秒内（40次更新，每25ms一次）只更新该 span 的内容；
-       - 更新完后固定该 span 为正确字符；
-       - 所有字母揭示完毕后，转换为居中显示图片和姓名。
+    /*
+      animateWinner 函数：
+      - 为中奖者姓名中每个字符创建一个 <span class="char-span">（数量与姓名长度相同）；
+      - 使用一个 for 循环（配合 async/await）顺序更新每个 span：
+           对当前 span 进行 40 次更新（每次间隔 25ms，总共 1 秒），每次只更新该 span 的内容为随机字符；
+           更新结束后固定为正确字符，然后开始下一个 span 的更新；
+      - 所有字符更新完毕后，将整个单元格转换为居中显示图片和姓名。
     */
     function animateWinner(element, winnerName) {
       return new Promise(resolve => {
-        // 清空元素，创建与姓名长度相同的 span
         element.innerHTML = '';
         let spans = [];
         for (let i = 0; i < winnerName.length; i++) {
@@ -260,7 +260,6 @@
           }
         }
         revealLetters().then(() => {
-          // 所有字母揭示完毕后，将单元格内容转换为居中显示图片和姓名
           element.style.transition = 'all 0.5s ease-out';
           element.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;">
                                   <img src="${getImage(winnerName)}" style="width:15px;height:20px;margin-right:5px;">
@@ -332,7 +331,7 @@
       return row;
     }
 
-    // 开始抽取：验证名单、随机抽取中奖者、启动动画
+    // 开始抽取
     startBtn.addEventListener('click', async function() {
       names = nameListTextarea.value.split('\n').map(name => name.trim()).filter(name => name !== '');
       const winnerCount = parseInt(winnerCountInput.value) || 1;
@@ -355,7 +354,7 @@
       await animateWinnersSequentially(winners);
     });
 
-    // 跳过动画：取消所有定时器，直接显示最终结果
+    // 跳过动画
     skipBtn.addEventListener('click', function() {
       cancelAnimation = true;
       activeTimers.forEach(t => clearTimeout(t));
@@ -377,7 +376,7 @@
       displayWinnersDirectly(winners);
     });
 
-    // 彩蛋
+    // 彩蛋功能
     function refreshEasterEgg() {
       var egg = document.getElementById('easterEgg');
       var margin = 10;
