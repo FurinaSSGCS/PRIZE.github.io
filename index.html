@@ -450,6 +450,8 @@
       currentPage = 0;
       updatePaginationControls();
       displayPage(0);
+      // 修改：启用“清除结果”按钮
+      clearBtn.disabled = false;
     });
     
     clearBtn.addEventListener('click', function() {
