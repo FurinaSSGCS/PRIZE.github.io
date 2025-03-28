@@ -1,4 +1,4 @@
-// 创建悬浮播放器 GUI
+// Create the floating music player GUI
 const musicPlayer = document.createElement("div");
 musicPlayer.id = "musicPlayer";
 musicPlayer.innerHTML = `
@@ -10,7 +10,7 @@ musicPlayer.innerHTML = `
     <button id="closePlayer">✖ 关闭</button>
 `;
 
-// 添加 CSS 样式
+// Add CSS styling
 const style = document.createElement("style");
 style.innerHTML = `
     #musicPlayer {
@@ -72,11 +72,11 @@ style.innerHTML = `
     }
 `;
 
-// 追加到 HTML
+// Append to the HTML
 document.body.appendChild(style);
 document.body.appendChild(musicPlayer);
 
-// 读取 Cookie
+// Load developer cookie
 let developerCookie = "";
 function loadCookie() {
     fetch("cookie.txt")
@@ -88,7 +88,7 @@ function loadCookie() {
         .catch(err => console.error("无法读取 cookie.txt:", err));
 }
 
-// 解析网易云音乐并播放
+// Function to search and play the song
 function searchSong() {
     const songUrl = document.getElementById("songSearchInput").value.trim();
     if (!songUrl) {
@@ -110,12 +110,9 @@ function searchSong() {
         audioPlayer.src = data.url;
         audioPlayer.play();
 
-        // 获取歌词
-        if (data.lrc) {
-            fetch(data.lrc)
-                .then(response => response.text())
-                .then(parseLyrics)
-                .catch(err => console.error("歌词加载失败:", err));
+        // Get lyrics if available
+        if (data.lyric) {
+            parseLyrics(data.lyric);
         }
     })
     .catch(err => {
@@ -124,13 +121,13 @@ function searchSong() {
     });
 }
 
-// 解析 LRC 歌词
+// Parse LRC lyrics
 let lyricsArray = [];
 function parseLyrics(lrcText) {
     lyricsArray = [];
     const lines = lrcText.split("\n");
     for (let line of lines) {
-        const match = line.match(/(\d+):(\d+).(\d+)(.*)/);
+        const match = line.match(/(\d+):(\d+).(\d+)\s*(.*)/);
         if (match) {
             let time = parseInt(match[1]) * 60 + parseInt(match[2]) + parseInt(match[3]) / 1000;
             lyricsArray.push({ time, text: match[4].trim() });
@@ -139,7 +136,7 @@ function parseLyrics(lrcText) {
     updateLyrics();
 }
 
-// 更新歌词显示
+// Update lyrics display
 function updateLyrics() {
     const audioPlayer = document.getElementById("audioPlayer");
     const lyricsContainer = document.getElementById("lyrics");
@@ -156,7 +153,7 @@ function updateLyrics() {
     };
 }
 
-// 绑定事件
+// Bind events
 document.addEventListener("DOMContentLoaded", loadCookie);
 document.getElementById("songSearchBtn").addEventListener("click", searchSong);
 document.getElementById("closePlayer").addEventListener("click", () => {
